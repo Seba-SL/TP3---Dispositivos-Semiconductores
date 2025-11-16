@@ -1,12 +1,12 @@
 * C:\users\sebastian\Desktop\FIUBA-2do Cuatrimestre\Dispositivos Semiconductores\TP3\TP3.asc
 M1 0 VG 0 0 myNMOS2 level=49 l=85u w=85u Tox=16n Nch=2e16 Nsub=2e16 CAPMOD=0
 M2 0 VG 0 0 myNMOS1 myNMOS2 level=49 l=85u w=85u Tox=16n Nch=2e16 Nsub=2e16 CAPMOD=2
-V1 VG 0 PULSE(-1.8 , 1.2 , 0 , 1 , 1 , 0 , 2 )
+V1 VG 0 PULSE(-2 , 1 , 0 , 1 , 1 , 0 , 2 )
 .model NMOS NMOS
 .model PMOS PMOS
 .lib C:\users\sebastian\Documents\LTspiceXVII\lib\cmp\standard.mos
-myNMOS2 level=49 l=85u w=85u Tox=16n Nch=2e16 Nsub=2e16 CAPMOD=0
-myNMOS1 myNMOS2 level=49 l=85u w=85u Tox=16n Nch=2e16 Nsub=2e16 CAPMOD=2
+.MODEL myNMOS2 NMOS(level=49 + Tox=16n +Nch=2e16 +Nsub=2e16 +CAPMOD=09
+.MODEL myNMOS1 NMOS( level=49 +Tox=16n +Nch=2e16 +Nsub=2e16+ CAPMOD=2)
 .tran 0 1 2u 2u
 .backanno
 .end
