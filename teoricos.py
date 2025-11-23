@@ -1,16 +1,85 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-#Parametros
-e_o = 8.854e-12 #F/m
-epsilon_si = 11.7*e_o
-epsilon_ox = 3.9*e_o
+# Parámetros
+e_o = 88.54e-15  # F/cm
+epsilon_si = 11.7 * e_o
 
-
-t_ox = 16e-9 #m 
-
-q = 1.602e-19       # Carga elemental (C)
-k = 1.381e-23       # Constante de Boltzmann (J/K)
-T = 300             # Temperatura (K)
+q = 1.602e-19
+k = 1.381e-23
+T = 300  # K
 
 V_th = (k*T)/q
+
+ni = 1e10   # cm^-3
+Na = 2e16   # cm^-3
+
+psi_B = V_th * np.log(Na / ni)  # Para sustrato tipo p
+
+# Rango psi_s
+psi_s_values = np.linspace(-0.2, 0.8, 200000)
+
+# Expresión exacta
+A = np.exp(-psi_s_values / V_th) + psi_s_values / V_th - 1
+B = (ni**2 / Na**2) * (np.exp(psi_s_values / V_th) - psi_s_values / V_th - 1)
+
+argument = A + B
+argument[argument < 0] = np.nan
+
+Q_s = np.sqrt(2 * epsilon_si * q * V_th * Na) * np.sqrt(argument)
+Q_s_abs = np.abs(Q_s)
+
+# -----------------------
+# APROXIMACIONES SOLO EN SUS RANGOS DE VALIDEZ
+# -----------------------
+
+# ---- 1) Acumulación: psi_s < 0
+mask_acumulacion = psi_s_values < 0
+Q_s_acumulacion = np.abs(np.sqrt(2 * epsilon_si * q * V_th * Na)
+                         * (-psi_s_values/(2*V_th)))
+Q_s_acumulacion[~mask_acumulacion] = np.nan
+
+# ---- 2) Deplexión/vaciamiento: 0 < psi_s < 2 psi_B
+mask_vaciamiento = (psi_s_values > 0) & (psi_s_values < 2*psi_B)
+Q_s_vaciamiento = np.abs(np.sqrt(2 * epsilon_si * q * Na * psi_s_values))
+Q_s_vaciamiento[~mask_vaciamiento] = np.nan
+
+# ---- 3) Inversión fuerte: psi_s > 2 psi_B
+mask_inversion = psi_s_values > 2*psi_B
+Q_s_inversion = np.abs(np.sqrt(2 * epsilon_si * q * Na * psi_s_values
+                       + 2 * epsilon_si * q * V_th * (ni**2/Na)
+                       * np.exp(psi_s_values/V_th)))
+Q_s_inversion[~mask_inversion] = np.nan
+
+# ---- Gráfica ----
+plt.figure(figsize=(6,4))
+plt.plot(psi_s_values, Q_s_abs, alpha=0.7, linewidth=4.5, label="Exacto")
+plt.plot(psi_s_values, Q_s_acumulacion,alpha=0.7, linewidth=3.5,linestyle="--", color="red",label="Aprox. Acumulación (ψ_s < 0)")
+plt.plot(psi_s_values, Q_s_vaciamiento,alpha=0.7, linewidth=3.5, linestyle="--",color="green",label="Aprox. Vaciamiento (0 < ψ_s < 2ψ_B)")
+plt.plot(psi_s_values, Q_s_inversion, alpha=0.7,linewidth=3.5,linestyle="--", color="orange",label="Aprox. Inversión (ψ_s > 2ψ_B)")
+
+plt.yscale("log")
+plt.xlabel(r'$\psi_s$ (V)')
+plt.ylabel(r'$|Q_s|$ (C/cm$^2$)')
+plt.title(r"Curva de $|Q_s|$ vs $\psi_s$")
+
+plt.grid(True, which="both")
+plt.legend()
+
+# Cartel
+textstr = '\n'.join((
+    r'$T = %d\,\mathrm{K}$' % T,
+    r'$N_{sub} = N_{ch} = %.1e \mathrm{cm^{-3}}$' % Na,
+    r'$\psi_B = %.3f\,\mathrm{V}$' % psi_B
+))
+
+plt.gca().text(
+    0.60, 0.30,
+    textstr,
+    transform=plt.gca().transAxes,
+    fontsize=10,
+    bbox=dict(boxstyle='round', facecolor='white', alpha=0.9)
+)
+
+plt.tight_layout()
+plt.show()
