@@ -1,33 +1,27 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
+
 
 # Parámetros
 e_o = 88.54e-15  # F/cm
 epsilon_si = 11.7 * e_o
 e_ox = 3.9*e_o
-
-
-
 chi_si = 4.05  #eV
 chi_ox  =0.95 #eV
-
 Eg = 1.12 #eV
-
-
-tox = 16e-9
-
+tox = 16e-9  #en nm 
 q = 1.602e-19
 k = 1.381e-23
 T = 300  # K
-
 V_th = (k*T)/q
 
 ni = 1e10   # cm^-3
 Na = 2e16   # cm^-3
 
-Cox = e_ox/tox
+Cox = e_ox/(tox*100)  # paso a cm el tox
 
-psi_B = V_th * np.log(Na / ni)  # Para sustrato tipo p
+psi_B = -V_th * np.log(Na / ni)  # Para sustrato tipo p
 
 psi_bi = chi_si*q + (Eg/2*q) + V_th*np.log(Na/ni) - chi_ox*q
 
@@ -136,11 +130,105 @@ plt.gca().text(
     bbox=dict(boxstyle='round', facecolor='white', alpha=0.9)
 )
 
+
+plt.plot([Vg(_y) for _y in y], y,alpha = 0.85, linewidth=4.5, color = "orange",label="Tensión de Superficie vs VG")
+
 plt.ylabel(r'$\psi_s$ (V)')
 plt.xlabel(r'$V_G$ (V)')
 plt.title(r"Curva de $\psi_s$ vs $V_G$")
-plt.plot([Vg(_y) for _y in y], y,alpha = 0.85, linewidth=4.5, color = "orange")
+
 plt.xlim(-2, 1)
+plt.legend()
+
 # plt.ylim(0, 1.2)
 plt.grid()
 plt.show()
+
+
+
+#Capacitancia en funcion de V
+# Vamos a recalcular Cd con la fórmula correcta para la región de interés:
+# --- Gráfica ---
+
+# Definición de tu eje X (Voltaje de Puerta)
+VG_values = np.linspace(-2, 1, 2000)
+
+#VT = VF B − 2ψB + γ raiz{−2ψB}
+
+factor_body = np.sqrt(2*q*Na*epsilon_si)/Cox
+
+VT = VFB - 2*psi_B + factor_body*np.sqrt(-2*psi_B)
+
+# Aquí C_mos_total es igual a la constante Cox
+C_cox_vector = np.full_like(VG_values, Cox)
+
+print("Cuanto vale Cox = ", C_cox_vector*1e9)
+print("Cuanto vale VT = ",VT)
+
+
+
+C_mos_total_curva = np.zeros_like(VG_values) # Array para almacenar la curva C_MOS
+
+# Capacitancia Mínima (C_min)
+
+
+# 1. Acumulación (VG <= VFB)
+mask_acumulacion = VG_values <= VFB
+C_mos_total_curva[mask_acumulacion] = Cox
+
+# 2. Inversión (VG >= VT) - Alta Frecuencia
+mask_inversion = VG_values >= VT
+C_mos_total_curva[mask_inversion] = Cox
+
+# 3. Agotamiento (VFB < VG < VT)
+
+
+
+
+
+# Modelo de vaciamiento
+mask_dep = (VG_values > VFB) & (VG_values < VT)
+
+argumento_vaciamiento = (4/(factor_body**2))*(VG_values - VFB) + 1 
+
+
+
+C_mos_total_curva[mask_dep] = Cox / np.sqrt(argumento_vaciamiento[mask_dep])
+
+
+plt.figure(figsize=(7,5))
+
+# **CORRECCIÓN:** Multiplica C_mos_total por 1e6 para graficar en uF/cm^2
+plt.plot(VG_values, C_cox_vector*1e9 , alpha=0.85,linestyle="--" ,linewidth=4.5, label=r'$C_{ox}$')
+plt.plot(VG_values, C_mos_total_curva*1e9 , alpha=0.85 ,linewidth=4.5, color = "orange" , label=r'$C$')
+
+plt.xlabel(r'$V_G$ (V)')
+# **CORRECCIÓN:** Ajusta la etiqueta del eje Y a las nuevas unidades
+plt.ylabel(r'$C$ ($ nF/cm^2$)') 
+plt.title('C vs VG')
+
+# Recta Vertical en VFB
+plt.axvline(x=VFB, 
+            color='gray', 
+            linestyle='-.', 
+            linewidth=2, 
+            label=r'$V_{FB}$')
+
+# Recta Vertical en VT
+plt.axvline(x=VT, 
+            color='purple', 
+            linestyle='-.', 
+            linewidth=2, 
+            label=r'$V_T$')
+
+# Para ver mejor la línea, ajustamos los límites del eje Y
+# Cox en uF/cm^2 es aprox 2.15
+plt.ylim(0, 300) 
+
+plt.grid(True, which="both", linestyle="--")
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+
+
