@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 # ----------------------------------------------------
 #  Variables
 # ----------------------------------------------------
-Eg = 1.12
 q     = 1.6e-19               
 eps0  = 8.85e-14              
 eps_s = 11.7 * eps0
@@ -23,9 +22,7 @@ kT_q = 0.0259
 phi_F = -kT_q * np.log(N_A / ni)
 psi_inv =- 2 * phi_F          
 
-phi_bi = (Eg / 2) + kT_q * np.log(N_A / ni)
-
-Vfb = -phi_bi
+Vfb = -phi_F
 gamma = np.sqrt(2 * q * eps_s * N_A) / Cox
 
 # ----------------------------------------------------
@@ -52,18 +49,23 @@ for Vg, label_tag in [(Vg_min, "Vg_min"), (Vg_max, "Vg_max")]:
     # -------- Qi: solo para inversion fuerte ψs ≥ ψ_inv --------
     Qi = np.zeros_like(psi_s)
     mask_inv = psi_s >= psi_inv
-    Qi[mask_inv] = -Cox * (Vg - (Vfb + psi_s[mask_inv] + gamma*np.sqrt(np.maximum(psi_s[mask_inv], 0))))
+    #Qi[mask_inv] = -Cox * (Vg - (Vfb + psi_s[mask_inv] + gamma*np.sqrt(np.maximum(psi_s[mask_inv], 0))))
+    Qi_term = Vg - (Vfb + psi_s[mask_inv] + gamma*np.sqrt(np.maximum(psi_s[mask_inv], 0)))
+    Qi[mask_inv] = -Cox * np.maximum(Qi_term, 0)   # IMPORTANTE
+
 
     # -------- Total Qs --------
- 
     Qs = Qd + Qi
 
     # -------- Graficar --------
-    plt.plot(psi_s, Qd, '-',  linewidth=2, color=color_Qd,label=f"Qd ({label_tag})")
+    plt.plot(psi_s, Qd, '-',  linewidth=2, color=color_Qd,
+             label=f"Qd ({label_tag})")
 
-    plt.plot(psi_s, Qi, '--', linewidth=2, color=color_Qi,label=f"Qi ({label_tag})")
+    plt.plot(psi_s, Qi, '--', linewidth=2, color=color_Qi,
+             label=f"Qi ({label_tag})")
 
-    plt.plot(psi_s, Qs, '-',  linewidth=2, color=color_Qs,label=f"Qs ({label_tag})")
+    plt.plot(psi_s, Qs, '-',  linewidth=2, color=color_Qs,
+             label=f"Qs ({label_tag})")
 
 # ----------------------------------------------------
 # MARCAR REGIONES 
